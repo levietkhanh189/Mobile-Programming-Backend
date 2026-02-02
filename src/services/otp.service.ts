@@ -10,7 +10,7 @@ function generateOTP(): string {
 
 export async function sendOTP(
   email: string,
-  purpose: 'register' | 'forgot-password'
+  purpose: 'register' | 'forgot-password' | 'update-email' | 'update-phone'
 ): Promise<{ otp: string; expiresIn: number }> {
   // Check rate limit
   checkLimit(email);
@@ -61,7 +61,7 @@ export function verifyOTP(email: string, otp: string): boolean {
   return true;
 }
 
-export function isOTPVerified(email: string, purpose: 'register' | 'forgot-password'): boolean {
+export function isOTPVerified(email: string, purpose: 'register' | 'forgot-password' | 'update-email' | 'update-phone'): boolean {
   const record = otpStorage.get(email);
   return !!record && record.verified && record.purpose === purpose;
 }

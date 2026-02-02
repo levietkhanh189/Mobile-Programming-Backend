@@ -4,6 +4,7 @@ export interface User {
   password: string;
   fullName: string;
   phone: string;
+  avatar?: string;
   createdAt: string;
 }
 
@@ -12,6 +13,7 @@ export interface UserResponse {
   email: string;
   fullName: string;
   phone: string;
+  avatar?: string;
   createdAt: string;
 }
 
