@@ -5,6 +5,8 @@ export interface Product {
     price: number;
     category: string;
     image: string;
+    soldCount: number;
+    discountPercentage: number;
     createdAt: string;
 }
 

@@ -45,3 +45,48 @@ export function getProductById(req: Request, res: Response): void {
         });
     }
 }
+
+export function getCategories(_req: Request, res: Response): void {
+    try {
+        const categories = productStorage.getCategories();
+        res.status(200).json({
+            success: true,
+            data: categories,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách category.',
+        });
+    }
+}
+
+export function getTopSellers(_req: Request, res: Response): void {
+    try {
+        const products = productStorage.getTopSellers(10);
+        res.status(200).json({
+            success: true,
+            data: products,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách sản phẩm bán chạy.',
+        });
+    }
+}
+
+export function getDiscountedProducts(_req: Request, res: Response): void {
+    try {
+        const products = productStorage.getDiscountedProducts(20);
+        res.status(200).json({
+            success: true,
+            data: products,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách sản phẩm giảm giá.',
+        });
+    }
+}
