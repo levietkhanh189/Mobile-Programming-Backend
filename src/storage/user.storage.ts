@@ -31,6 +31,18 @@ class UserStorage {
     return false;
   }
 
+  updateProfile(id: number, data: { fullName?: string; avatar?: string; phone?: string; email?: string }): User | undefined {
+    const user = this.findById(id);
+    if (user) {
+      if (data.fullName) user.fullName = data.fullName;
+      if (data.avatar) user.avatar = data.avatar;
+      if (data.phone) user.phone = data.phone;
+      if (data.email) user.email = data.email;
+      return user;
+    }
+    return undefined;
+  }
+
   count(): number {
     return this.users.length;
   }

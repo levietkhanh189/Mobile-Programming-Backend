@@ -1,7 +1,7 @@
 export async function sendOTP(
   email: string,
   otp: string,
-  purpose: 'register' | 'forgot-password'
+  purpose: 'register' | 'forgot-password' | 'update-email' | 'update-phone'
 ): Promise<void> {
   // Simulate email sending by logging to console
   console.log('\n========================================');
