@@ -5,12 +5,20 @@ export function getProducts(req: Request, res: Response): void {
     try {
         const search = typeof req.query.search === 'string' ? req.query.search : undefined;
         const category = typeof req.query.category === 'string' ? req.query.category : undefined;
-        const products = productStorage.findAll(search, category);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+
+        const { products, total } = productStorage.findAll(search, category, page, limit);
 
         res.status(200).json({
             success: true,
             data: products,
-            total: products.length,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
         });
     } catch (error) {
         res.status(500).json({

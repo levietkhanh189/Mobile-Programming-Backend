@@ -71,7 +71,7 @@ class ProductStorage {
         }))
     ];
 
-    findAll(search?: string, category?: string): Product[] {
+    findAll(search?: string, category?: string, page: number = 1, limit: number = 10): { products: Product[], total: number } {
         let filtered = this.products;
 
         if (search) {
@@ -83,7 +83,11 @@ class ProductStorage {
             filtered = filtered.filter(p => p.category === category);
         }
 
-        return filtered;
+        const total = filtered.length;
+        const start = (page - 1) * limit;
+        const products = filtered.slice(start, start + limit);
+
+        return { products, total };
     }
 
     findById(id: number): Product | undefined {
