@@ -43,7 +43,7 @@ class ProductStorage {
       select: { category: true },
       distinct: ['category'],
     });
-    return results.map((r) => r.category);
+    return results.map((r: { category: string }) => r.category);
   }
 
   async getTopSellers(limit: number = 10): Promise<Product[]> {

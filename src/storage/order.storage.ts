@@ -14,7 +14,7 @@ class OrderStorage {
     });
 
     const orderItems = items.map((item) => {
-      const product = products.find((p) => p.id === item.productId);
+      const product = products.find((p: any) => p.id === item.productId);
       if (!product) throw new Error(`Product ${item.productId} not found`);
       return {
         productId: product.id,
@@ -54,7 +54,7 @@ class OrderStorage {
       include: { items: true },
       orderBy: { createdAt: 'desc' },
     });
-    return orders.map(this.toOrder);
+    return orders.map((o: any) => this.toOrder(o));
   }
 
   async findById(id: string): Promise<Order | undefined> {

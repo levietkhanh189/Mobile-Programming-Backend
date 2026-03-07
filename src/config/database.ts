@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const rawUrl = process.env.DATABASE_URL || '';
