@@ -8,12 +8,11 @@ import { isOTPVerified, clearOTP } from './otp.service';
 
 export async function registerUser(
   data: RegisterRequest,
-  requireOTP: boolean = false
 ): Promise<AuthResponse> {
   const { email, password, fullName, phone = '' } = data;
 
-  // Check if OTP is required and verified
-  if (requireOTP && !isOTPVerified(email, 'register')) {
+  // OTP verification is required for all registrations
+  if (!isOTPVerified(email, 'register')) {
     throw new Error('Email not verified. Please verify your OTP first.');
   }
 
@@ -34,10 +33,8 @@ export async function registerUser(
     phone,
   });
 
-  // Clear OTP if it was used
-  if (requireOTP) {
-    clearOTP(email);
-  }
+  // Clear used OTP
+  clearOTP(email);
 
   // Generate JWT token
   const token = generateToken(user.id, user.email);

@@ -15,7 +15,6 @@ app.listen(PORT, () => {
   console.log('  - POST /api/auth/send-otp');
   console.log('  - POST /api/auth/verify-otp');
   console.log('  - POST /api/auth/register');
-  console.log('  - POST /api/auth/register-simple');
   console.log('  - POST /api/auth/login');
   console.log('  - POST /api/auth/reset-password');
   console.log('  - GET  /api/user/profile (protected)');

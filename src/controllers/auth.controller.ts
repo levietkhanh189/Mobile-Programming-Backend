@@ -136,48 +136,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
 
     // Register user (requires OTP verification)
-    const result = await registerUser({ email, password, fullName, phone }, true);
-
-    res.status(201).json(result);
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error instanceof Error ? error.message : 'Registration failed.',
-    });
-  }
-}
-
-export async function registerSimple(req: Request, res: Response): Promise<void> {
-  try {
-    const { email, password, fullName, phone } = req.body as RegisterRequest;
-
-    // Validate input
-    if (!email || !password || !fullName) {
-      res.status(400).json({
-        success: false,
-        message: 'Email, password, and full name are required.',
-      });
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid email format.',
-      });
-      return;
-    }
-
-    if (password.length < 6) {
-      res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters.',
-      });
-      return;
-    }
-
-    // Register user (no OTP required)
-    const result = await registerUser({ email, password, fullName, phone }, false);
+    const result = await registerUser({ email, password, fullName, phone });
 
     res.status(201).json(result);
   } catch (error) {
