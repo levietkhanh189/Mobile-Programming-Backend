@@ -39,7 +39,7 @@ export async function sendOTP(req: Request, res: Response): Promise<void> {
 
     // For register: check if email already exists
     if (purpose === 'register') {
-      const existingUser = userStorage.findByEmail(email);
+      const existingUser = await userStorage.findByEmail(email);
       if (existingUser) {
         res.status(400).json({
           success: false,
@@ -51,7 +51,7 @@ export async function sendOTP(req: Request, res: Response): Promise<void> {
 
     // For forgot-password: check if email exists
     if (purpose === 'forgot-password') {
-      const existingUser = userStorage.findByEmail(email);
+      const existingUser = await userStorage.findByEmail(email);
       if (!existingUser) {
         res.status(404).json({
           success: false,

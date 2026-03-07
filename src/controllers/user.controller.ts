@@ -4,14 +4,14 @@ import * as userService from '../services/user.service';
 import * as otpService from '../services/otp.service';
 import { isValidEmail } from '../utils/validation.utils';
 
-export function getProfile(req: AuthRequest, res: Response): void {
+export async function getProfile(req: AuthRequest, res: Response): Promise<void> {
   try {
     if (!req.user) {
       res.status(401).json({ success: false, message: 'Unauthorized.' });
       return;
     }
 
-    const user = userService.getUserById(req.user.userId);
+    const user = await userService.getUserById(req.user.userId);
     res.status(200).json({ success: true, message: 'Profile retrieved successfully.', user });
   } catch (error) {
     res.status(404).json({ success: false, message: error instanceof Error ? error.message : 'User not found.' });
@@ -26,7 +26,7 @@ export async function updateProfile(req: AuthRequest, res: Response): Promise<vo
     }
 
     const { fullName, avatar } = req.body;
-    const user = userService.updateProfile(req.user.userId, { fullName, avatar });
+    const user = await userService.updateProfile(req.user.userId, { fullName, avatar });
 
     res.status(200).json({ success: true, message: 'Profile updated successfully.', user });
   } catch (error) {
@@ -87,7 +87,7 @@ export async function verifyUpdateEmail(req: AuthRequest, res: Response): Promis
       return;
     }
 
-    const user = userService.updateEmail(req.user.userId, newEmail);
+    const user = await userService.updateEmail(req.user.userId, newEmail);
     res.status(200).json({ success: true, message: 'Cập nhật Email thành công.', user });
   } catch (error) {
     res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Xác thực Email thất bại.' });
@@ -123,7 +123,7 @@ export async function verifyUpdatePhone(req: AuthRequest, res: Response): Promis
       return;
     }
 
-    const user = userService.updatePhone(req.user.userId, newPhone);
+    const user = await userService.updatePhone(req.user.userId, newPhone);
     res.status(200).json({ success: true, message: 'Cập nhật Số điện thoại thành công.', user });
   } catch (error) {
     res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Xác thực Số điện thoại thất bại.' });

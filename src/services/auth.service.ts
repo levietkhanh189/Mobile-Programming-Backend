@@ -11,32 +11,26 @@ export async function registerUser(
 ): Promise<AuthResponse> {
   const { email, password, fullName, phone = '' } = data;
 
-  // OTP verification is required for all registrations
   if (!isOTPVerified(email, 'register')) {
     throw new Error('Email not verified. Please verify your OTP first.');
   }
 
-  // Check if user already exists
-  const existingUser = userStorage.findByEmail(email);
+  const existingUser = await userStorage.findByEmail(email);
   if (existingUser) {
     throw new Error('User with this email already exists.');
   }
 
-  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Create user
-  const user = userStorage.create({
+  const user = await userStorage.create({
     email,
     password: hashedPassword,
     fullName,
     phone,
   });
 
-  // Clear used OTP
   clearOTP(email);
 
-  // Generate JWT token
   const token = generateToken(user.id, user.email);
 
   return {
@@ -44,26 +38,23 @@ export async function registerUser(
     message: 'Registration successful!',
     user: sanitizeUser(user),
     token,
-    expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
+    expiresIn: 7 * 24 * 60 * 60,
   };
 }
 
 export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
   const { email, password } = data;
 
-  // Find user
-  const user = userStorage.findByEmail(email);
+  const user = await userStorage.findByEmail(email);
   if (!user) {
     throw new Error('Invalid email or password.');
   }
 
-  // Verify password
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
     throw new Error('Invalid email or password.');
   }
 
-  // Generate JWT token
   const token = generateToken(user.id, user.email);
 
   return {
@@ -71,7 +62,7 @@ export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
     message: 'Login successful!',
     user: sanitizeUser(user),
     token,
-    expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
+    expiresIn: 7 * 24 * 60 * 60,
   };
 }
 

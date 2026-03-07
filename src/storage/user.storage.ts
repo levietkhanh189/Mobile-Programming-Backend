@@ -1,55 +1,76 @@
+import prisma from '../config/database';
 import { User } from '../types/user.types';
 
 class UserStorage {
-  private users: User[] = [];
-  private nextId: number = 1;
-
-  create(userData: Omit<User, 'id' | 'createdAt'>): User {
-    const user: User = {
-      ...userData,
-      id: this.nextId++,
-      createdAt: new Date().toISOString(),
-    };
-    this.users.push(user);
-    return user;
+  async create(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+    const user = await prisma.user.create({
+      data: {
+        email: userData.email,
+        password: userData.password,
+        fullName: userData.fullName,
+        phone: userData.phone || '',
+        avatar: userData.avatar,
+      },
+    });
+    return this.toUser(user);
   }
 
-  findByEmail(email: string): User | undefined {
-    return this.users.find(user => user.email.toLowerCase() === email.toLowerCase());
+  async findByEmail(email: string): Promise<User | undefined> {
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+    return user ? this.toUser(user) : undefined;
   }
 
-  findById(id: number): User | undefined {
-    return this.users.find(user => user.id === id);
+  async findById(id: number): Promise<User | undefined> {
+    const user = await prisma.user.findUnique({ where: { id } });
+    return user ? this.toUser(user) : undefined;
   }
 
-  updatePassword(email: string, newPassword: string): boolean {
-    const user = this.findByEmail(email);
-    if (user) {
-      user.password = newPassword;
+  async updatePassword(email: string, newPassword: string): Promise<boolean> {
+    try {
+      await prisma.user.update({
+        where: { email: email.toLowerCase() },
+        data: { password: newPassword },
+      });
       return true;
+    } catch {
+      return false;
     }
-    return false;
   }
 
-  updateProfile(id: number, data: { fullName?: string; avatar?: string; phone?: string; email?: string }): User | undefined {
-    const user = this.findById(id);
-    if (user) {
-      if (data.fullName) user.fullName = data.fullName;
-      if (data.avatar) user.avatar = data.avatar;
-      if (data.phone) user.phone = data.phone;
-      if (data.email) user.email = data.email;
-      return user;
+  async updateProfile(
+    id: number,
+    data: { fullName?: string; avatar?: string; phone?: string; email?: string },
+  ): Promise<User | undefined> {
+    try {
+      const updateData: Record<string, string> = {};
+      if (data.fullName) updateData.fullName = data.fullName;
+      if (data.avatar) updateData.avatar = data.avatar;
+      if (data.phone) updateData.phone = data.phone;
+      if (data.email) updateData.email = data.email;
+
+      const user = await prisma.user.update({
+        where: { id },
+        data: updateData,
+      });
+      return this.toUser(user);
+    } catch {
+      return undefined;
     }
-    return undefined;
   }
 
-  count(): number {
-    return this.users.length;
-  }
-
-  clear(): void {
-    this.users = [];
-    this.nextId = 1;
+  // Convert Prisma model to app User type
+  private toUser(row: { id: number; email: string; password: string; fullName: string; phone: string; avatar: string | null; createdAt: Date }): User {
+    return {
+      id: row.id,
+      email: row.email,
+      password: row.password,
+      fullName: row.fullName,
+      phone: row.phone,
+      avatar: row.avatar ?? undefined,
+      createdAt: row.createdAt.toISOString(),
+    };
   }
 }
 

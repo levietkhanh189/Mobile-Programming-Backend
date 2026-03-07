@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
 import { orderStorage } from '../storage/order.storage';
 
-// Middleware should populate req.user, assuming it's done or using a fixed user for now
-const getCurrentUserId = (req: any) => req.user?.id || 1;
+const getCurrentUserId = (req: any) => req.user?.userId || req.user?.id || 1;
 
-export function checkout(req: Request, res: Response): void {
+export async function checkout(req: Request, res: Response): Promise<void> {
     try {
         const userId = getCurrentUserId(req);
         const { items, shippingAddress } = req.body;
@@ -14,28 +13,28 @@ export function checkout(req: Request, res: Response): void {
             return;
         }
 
-        const order = orderStorage.create(userId, items, shippingAddress);
+        const order = await orderStorage.create(userId, items, shippingAddress);
         res.status(201).json({ success: true, data: order });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message || 'Error creating order' });
     }
 }
 
-export function getOrderHistory(req: Request, res: Response): void {
+export async function getOrderHistory(req: Request, res: Response): Promise<void> {
     try {
         const userId = getCurrentUserId(req);
-        const orders = orderStorage.findByUser(userId);
+        const orders = await orderStorage.findByUser(userId);
         res.status(200).json({ success: true, data: orders });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error fetching order history' });
     }
 }
 
-export function cancelOrder(req: Request, res: Response): void {
+export async function cancelOrder(req: Request, res: Response): Promise<void> {
     try {
         const userId = getCurrentUserId(req);
         const id = req.params.id as string;
-        const result = orderStorage.cancel(id, userId);
+        const result = await orderStorage.cancel(id, userId);
 
         if (!result.success) {
             res.status(400).json(result);

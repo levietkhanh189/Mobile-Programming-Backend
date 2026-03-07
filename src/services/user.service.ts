@@ -4,8 +4,8 @@ import { UserResponse } from '../types/user.types';
 import { sanitizeUser } from './auth.service';
 import { isOTPVerified, clearOTP } from './otp.service';
 
-export function getUserById(id: number): UserResponse {
-  const user = userStorage.findById(id);
+export async function getUserById(id: number): Promise<UserResponse> {
+  const user = await userStorage.findById(id);
   if (!user) {
     throw new Error('User not found.');
   }
@@ -13,28 +13,22 @@ export function getUserById(id: number): UserResponse {
 }
 
 export async function resetPassword(email: string, newPassword: string): Promise<void> {
-  // Check if OTP is verified for forgot-password
   if (!isOTPVerified(email, 'forgot-password')) {
     throw new Error('Email not verified. Please verify your OTP first.');
   }
 
-  // Check if user exists
-  const user = userStorage.findByEmail(email);
+  const user = await userStorage.findByEmail(email);
   if (!user) {
     throw new Error('User not found.');
   }
 
-  // Hash new password
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  // Update password
-  userStorage.updatePassword(email, hashedPassword);
-
-  // Clear OTP
+  await userStorage.updatePassword(email, hashedPassword);
   clearOTP(email);
 }
-export function updateProfile(id: number, data: { fullName?: string; avatar?: string }): UserResponse {
-  const user = userStorage.updateProfile(id, data);
+
+export async function updateProfile(id: number, data: { fullName?: string; avatar?: string }): Promise<UserResponse> {
+  const user = await userStorage.updateProfile(id, data);
   if (!user) {
     throw new Error('User not found.');
   }
@@ -42,27 +36,26 @@ export function updateProfile(id: number, data: { fullName?: string; avatar?: st
 }
 
 export async function changePassword(id: number, oldPassword: string, newPassword: string): Promise<void> {
-  const user = userStorage.findById(id);
+  const user = await userStorage.findById(id);
   if (!user) {
     throw new Error('User not found.');
   }
 
   const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
   if (!isPasswordValid) {
-    throw new Error('Mật khẩu cũ không chính xác.');
+    throw new Error('Mat khau cu khong chinh xac.');
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-  userStorage.updatePassword(user.email, hashedPassword);
+  await userStorage.updatePassword(user.email, hashedPassword);
 }
 
-export function updateEmail(id: number, newEmail: string): UserResponse {
-  // Check if OTP verified for update-email
+export async function updateEmail(id: number, newEmail: string): Promise<UserResponse> {
   if (!isOTPVerified(newEmail, 'update-email')) {
-    throw new Error('Email chưa được xác thực. Vui lòng kiểm tra mã OTP.');
+    throw new Error('Email chua duoc xac thuc. Vui long kiem tra ma OTP.');
   }
 
-  const user = userStorage.updateProfile(id, { email: newEmail });
+  const user = await userStorage.updateProfile(id, { email: newEmail });
   if (!user) {
     throw new Error('User not found.');
   }
@@ -71,14 +64,12 @@ export function updateEmail(id: number, newEmail: string): UserResponse {
   return sanitizeUser(user);
 }
 
-export function updatePhone(id: number, newPhone: string): UserResponse {
-  // Check if OTP verified for update-phone
-  // Note: Phone OTP verification uses the phone number as key in otpStorage
+export async function updatePhone(id: number, newPhone: string): Promise<UserResponse> {
   if (!isOTPVerified(newPhone, 'update-phone')) {
-    throw new Error('Số điện thoại chưa được xác thực. Vui lòng kiểm tra mã OTP.');
+    throw new Error('So dien thoai chua duoc xac thuc. Vui long kiem tra ma OTP.');
   }
 
-  const user = userStorage.updateProfile(id, { phone: newPhone });
+  const user = await userStorage.updateProfile(id, { phone: newPhone });
   if (!user) {
     throw new Error('User not found.');
   }
