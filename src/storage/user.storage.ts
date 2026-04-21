@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { User } from '../types/user.types';
 
 class UserStorage {
-  async create(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  async create(userData: Omit<User, 'id' | 'createdAt' | 'role' | 'points'>): Promise<User> {
     const user = await prisma.user.create({
       data: {
         email: userData.email,
@@ -60,8 +60,25 @@ class UserStorage {
     }
   }
 
+  async addPoints(userId: number, amount: number): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { points: { increment: amount } },
+    });
+  }
+
   // Convert Prisma model to app User type
-  private toUser(row: { id: number; email: string; password: string; fullName: string; phone: string; avatar: string | null; createdAt: Date }): User {
+  private toUser(row: {
+    id: number;
+    email: string;
+    password: string;
+    fullName: string;
+    phone: string;
+    avatar: string | null;
+    role: string;
+    points: number;
+    createdAt: Date;
+  }): User {
     return {
       id: row.id,
       email: row.email,
@@ -69,6 +86,8 @@ class UserStorage {
       fullName: row.fullName,
       phone: row.phone,
       avatar: row.avatar ?? undefined,
+      role: row.role as User['role'],
+      points: row.points,
       createdAt: row.createdAt.toISOString(),
     };
   }

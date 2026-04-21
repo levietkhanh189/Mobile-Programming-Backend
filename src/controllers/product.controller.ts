@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { productStorage } from '../storage/product.storage';
+import prisma from '../config/database';
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
     try {
@@ -98,3 +99,23 @@ export async function getDiscountedProducts(_req: Request, res: Response): Promi
         });
     }
 }
+
+export const getRelatedProducts = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id = parseInt(req.params['id'] as string);
+        const limit = parseInt(req.query['limit'] as string) || 10;
+        const product = await productStorage.findById(id);
+        if (!product) {
+            res.status(404).json({ error: 'Không tìm thấy sản phẩm' });
+            return;
+        }
+        const related = await prisma.product.findMany({
+            where: { category: product.category, id: { not: id } },
+            orderBy: { soldCount: 'desc' },
+            take: limit,
+        });
+        res.json({ products: related });
+    } catch (err) {
+        throw err;
+    }
+};

@@ -98,6 +98,23 @@ class OrderStorage {
     return { success: true, message: 'Order cancelled successfully' };
   }
 
+  async getStatsByUser(userId: number) {
+    const orders = await prisma.order.findMany({ where: { userId } });
+    const delivered = orders.filter((o) => o.status === 'Delivered');
+    const pending = orders.filter((o) =>
+      ['Pending', 'Confirmed', 'Processing', 'Shipping'].includes(o.status),
+    );
+    const cancelled = orders.filter((o) => o.status === 'Cancelled');
+    const sum = (arr: typeof orders) => arr.reduce((s, o) => s + o.totalAmount, 0);
+    return {
+      delivered: { count: delivered.length, total: sum(delivered) },
+      pending: { count: pending.length, total: sum(pending) },
+      cancelled: { count: cancelled.length, total: sum(cancelled) },
+      totalSpent: sum(delivered),
+      totalOrders: orders.length,
+    };
+  }
+
   private toOrder(row: {
     id: string;
     userId: number;

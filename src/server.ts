@@ -1,22 +1,19 @@
 import './config/environment';
+import http from 'http';
 import { createApp } from './app';
 import { PORT } from './config/constants';
+import { initSocket } from './config/socket';
 
 const app = createApp();
+const httpServer = http.createServer(app);
+initSocket(httpServer);
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log('\n========================================');
-  console.log('🚀 Mobile Programming Backend Server');
+  console.log('Mobile Programming Backend Server');
   console.log('========================================');
-  console.log(`✅ Server is running on http://localhost:${PORT}`);
-  console.log(`✅ API Base URL: http://localhost:${PORT}/api`);
-  console.log('\n📌 Available endpoints:');
-  console.log('  - GET  /api/health');
-  console.log('  - POST /api/auth/send-otp');
-  console.log('  - POST /api/auth/verify-otp');
-  console.log('  - POST /api/auth/register');
-  console.log('  - POST /api/auth/login');
-  console.log('  - POST /api/auth/reset-password');
-  console.log('  - GET  /api/user/profile (protected)');
+  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`API Base URL: http://localhost:${PORT}/api`);
+  console.log(`WebSocket: ws://localhost:${PORT}`);
   console.log('========================================\n');
 });

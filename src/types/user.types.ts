@@ -1,3 +1,5 @@
+export type UserRole = 'CUSTOMER' | 'MANAGER' | 'ADMIN';
+
 export interface User {
   id: number;
   email: string;
@@ -5,6 +7,8 @@ export interface User {
   fullName: string;
   phone: string;
   avatar?: string;
+  role: UserRole;
+  points: number;
   createdAt: string;
 }
 
@@ -14,6 +18,8 @@ export interface UserResponse {
   fullName: string;
   phone: string;
   avatar?: string;
+  role: UserRole;
+  points: number;
   createdAt: string;
 }
 
