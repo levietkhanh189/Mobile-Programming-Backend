@@ -6,6 +6,7 @@ const router = Router();
 
 router.post('/checkout', authenticateToken as any, orderController.checkout);
 router.get('/history', authenticateToken as any, orderController.getOrderHistory);
+router.get('/:id', authenticateToken as any, orderController.getOrderById);
 router.delete('/:id', authenticateToken as any, orderController.cancelOrder);
 
 export default router;
