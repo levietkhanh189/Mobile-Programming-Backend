@@ -1,18 +1,8 @@
-import nodemailer from 'nodemailer';
 import { NODE_ENV } from '../config/constants';
 
-// Gmail SMTP config from environment variables
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
-
-// Create reusable transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS,
-  },
-});
+const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
+const MAIL_FROM = process.env.MAIL_FROM || '';
+const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || 'Mobile App';
 
 function buildOTPEmailHTML(otp: string, purpose: string): string {
   const purposeText = purpose === 'register'
@@ -38,7 +28,6 @@ export async function sendOTP(
   otp: string,
   purpose: 'register' | 'forgot-password' | 'update-email' | 'update-phone'
 ): Promise<void> {
-  // Always log to console in development
   if (NODE_ENV === 'development') {
     console.log('\n========================================');
     console.log('📧 OTP EMAIL');
@@ -50,16 +39,35 @@ export async function sendOTP(
     console.log('========================================\n');
   }
 
-  // Send real email if SMTP is configured
-  if (SMTP_USER && SMTP_PASS) {
-    await transporter.sendMail({
-      from: `"Mobile App" <${SMTP_USER}>`,
-      to: email,
-      subject: `Mã OTP: ${otp} - Xác thực tài khoản`,
-      html: buildOTPEmailHTML(otp, purpose),
+  if (!BREVO_API_KEY || !MAIL_FROM) {
+    console.log('⚠️  Brevo not configured. Set BREVO_API_KEY and MAIL_FROM in env to send real emails.');
+    return;
+  }
+
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': BREVO_API_KEY,
+        'content-type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { email: MAIL_FROM, name: MAIL_FROM_NAME },
+        to: [{ email }],
+        subject: `Mã OTP: ${otp} - Xác thực tài khoản`,
+        htmlContent: buildOTPEmailHTML(otp, purpose),
+      }),
+      signal: AbortSignal.timeout(10000),
     });
-    console.log(`✅ OTP email sent to ${email}`);
-  } else {
-    console.log('⚠️  SMTP not configured. Set SMTP_USER and SMTP_PASS in .env to send real emails.');
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`❌ Brevo API error ${res.status} sending to ${email}: ${body}`);
+      return;
+    }
+    console.log(`✅ OTP email sent to ${email} via Brevo`);
+  } catch (err) {
+    console.error(`❌ Failed to send OTP email to ${email}:`, err instanceof Error ? err.message : err);
   }
 }
