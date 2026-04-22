@@ -46,16 +46,20 @@ model Product {
 }
 
 model Order {
-  id              String      @id
-  userId          Int
-  user            User        @relation(fields: [userId], references: [id])
-  items           OrderItem[]
-  totalAmount     Float
-  shippingAddress String
-  paymentMethod   String      @default("COD")
-  status          String      @default("Pending")
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                  String      @id
+  userId              Int
+  user                User        @relation(fields: [userId], references: [id])
+  items               OrderItem[]
+  totalAmount         Float
+  shippingAddress     String
+  paymentMethod       String      @default("COD")
+  status              String      @default("Pending")
+  // SePay integration fields (nullable for COD orders)
+  sepayInvoiceNumber  String?     @unique
+  sepayStatus         String?
+  sepayAmountVnd      Float?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 }
 
 model OrderItem {

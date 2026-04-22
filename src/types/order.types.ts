@@ -1,4 +1,6 @@
 export type OrderStatus = 'Pending' | 'Confirmed' | 'Processing' | 'Shipping' | 'Delivered' | 'Cancelled';
+export type PaymentMethod = 'COD' | 'SEPAY';
+export type SepayOrderStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
 
 export interface OrderItem {
     productId: number;
@@ -14,8 +16,11 @@ export interface Order {
     items: OrderItem[];
     totalAmount: number;
     shippingAddress: string;
-    paymentMethod: 'COD';
+    paymentMethod: PaymentMethod;
     status: OrderStatus;
+    sepayInvoiceNumber?: string | null;
+    sepayStatus?: SepayOrderStatus | null;
+    sepayAmountVnd?: number | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -23,4 +28,5 @@ export interface Order {
 export interface CreateOrderRequest {
     items: { productId: number; quantity: number }[];
     shippingAddress: string;
+    paymentMethod?: PaymentMethod;
 }

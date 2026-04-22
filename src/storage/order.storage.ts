@@ -1,11 +1,12 @@
 import prisma from '../config/database';
-import { Order } from '../types/order.types';
+import { Order, PaymentMethod, SepayOrderStatus } from '../types/order.types';
 
 class OrderStorage {
   async create(
     userId: number,
     items: { productId: number; quantity: number }[],
     shippingAddress: string,
+    paymentMethod: PaymentMethod = 'COD',
   ): Promise<Order> {
     // Fetch product details for each item
     const productIds = items.map((i) => i.productId);
@@ -38,7 +39,7 @@ class OrderStorage {
         userId,
         totalAmount,
         shippingAddress,
-        paymentMethod: 'COD',
+        paymentMethod,
         status: 'Pending',
         items: { create: orderItems },
       },
@@ -46,6 +47,49 @@ class OrderStorage {
     });
 
     return this.toOrder(order);
+  }
+
+  async findBySepayInvoice(invoiceNumber: string): Promise<Order | undefined> {
+    const order = await prisma.order.findUnique({
+      where: { sepayInvoiceNumber: invoiceNumber },
+      include: { items: true },
+    });
+    return order ? this.toOrder(order) : undefined;
+  }
+
+  async attachSepayCheckout(
+    orderId: string,
+    invoiceNumber: string,
+    amountVnd: number,
+  ): Promise<void> {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        sepayInvoiceNumber: invoiceNumber,
+        sepayAmountVnd: amountVnd,
+        sepayStatus: 'PENDING',
+      },
+    });
+  }
+
+  async updateSepayStatus(
+    orderId: string,
+    sepayStatus: SepayOrderStatus,
+  ): Promise<void> {
+    // When SePay confirms PAID, advance our internal order status to Confirmed.
+    const orderStatus =
+      sepayStatus === 'PAID'
+        ? 'Confirmed'
+        : sepayStatus === 'CANCELLED'
+          ? 'Cancelled'
+          : undefined;
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        sepayStatus,
+        ...(orderStatus ? { status: orderStatus } : {}),
+      },
+    });
   }
 
   async findByUser(userId: number): Promise<Order[]> {
@@ -122,6 +166,9 @@ class OrderStorage {
     shippingAddress: string;
     paymentMethod: string;
     status: string;
+    sepayInvoiceNumber?: string | null;
+    sepayStatus?: string | null;
+    sepayAmountVnd?: number | null;
     createdAt: Date;
     updatedAt: Date;
     items: { productId: number; name: string; price: number; quantity: number; image: string }[];
@@ -138,8 +185,11 @@ class OrderStorage {
       })),
       totalAmount: row.totalAmount,
       shippingAddress: row.shippingAddress,
-      paymentMethod: row.paymentMethod as 'COD',
+      paymentMethod: (row.paymentMethod as Order['paymentMethod']) || 'COD',
       status: row.status as Order['status'],
+      sepayInvoiceNumber: row.sepayInvoiceNumber ?? null,
+      sepayStatus: (row.sepayStatus as SepayOrderStatus) ?? null,
+      sepayAmountVnd: row.sepayAmountVnd ?? null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };

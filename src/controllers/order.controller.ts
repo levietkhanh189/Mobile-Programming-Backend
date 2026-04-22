@@ -6,14 +6,15 @@ const getCurrentUserId = (req: any) => req.user?.userId || req.user?.id || 1;
 export async function checkout(req: Request, res: Response): Promise<void> {
     try {
         const userId = getCurrentUserId(req);
-        const { items, shippingAddress } = req.body;
+        const { items, shippingAddress, paymentMethod } = req.body;
 
         if (!items || !items.length || !shippingAddress) {
             res.status(400).json({ success: false, message: 'Invalid order data' });
             return;
         }
 
-        const order = await orderStorage.create(userId, items, shippingAddress);
+        const method = paymentMethod === 'SEPAY' ? 'SEPAY' : 'COD';
+        const order = await orderStorage.create(userId, items, shippingAddress, method);
         res.status(201).json({ success: true, data: order });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message || 'Error creating order' });
