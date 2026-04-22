@@ -1,20 +1,41 @@
 import { Request, Response } from 'express';
 import { orderStorage } from '../storage/order.storage';
+import { addressStorage } from '../storage/address.storage';
 
 const getCurrentUserId = (req: any) => req.user?.userId || req.user?.id || 1;
+
+const formatAddress = (a: { fullName: string; phone: string; address: string; city: string }) =>
+    `${a.fullName} - ${a.phone} - ${a.address}, ${a.city}`;
 
 export async function checkout(req: Request, res: Response): Promise<void> {
     try {
         const userId = getCurrentUserId(req);
-        const { items, shippingAddress, paymentMethod } = req.body;
+        const { items, shippingAddress, addressId, paymentMethod } = req.body;
 
-        if (!items || !items.length || !shippingAddress) {
+        if (!items || !items.length) {
+            res.status(400).json({ success: false, message: 'Invalid order data' });
+            return;
+        }
+
+        let finalAddress: string | undefined;
+        if (addressId) {
+            const addr = await addressStorage.findById(Number(addressId), userId);
+            if (!addr) {
+                res.status(400).json({ success: false, message: 'Address not found' });
+                return;
+            }
+            finalAddress = formatAddress(addr);
+        } else if (typeof shippingAddress === 'string' && shippingAddress.trim()) {
+            finalAddress = shippingAddress.trim();
+        }
+
+        if (!finalAddress) {
             res.status(400).json({ success: false, message: 'Invalid order data' });
             return;
         }
 
         const method = paymentMethod === 'SEPAY' ? 'SEPAY' : 'COD';
-        const order = await orderStorage.create(userId, items, shippingAddress, method);
+        const order = await orderStorage.create(userId, items, finalAddress, method);
         res.status(201).json({ success: true, data: order });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message || 'Error creating order' });
