@@ -24,12 +24,12 @@ export const getAddresses = async (req: AuthRequest, res: Response): Promise<voi
 
 export const createAddress = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { label, fullName, phone, address, city } = req.body;
+    const { label, fullName, phone, address, city, district, ward, zipCode } = req.body;
     if (!fullName || !phone || !address || !city) {
       res.status(400).json({ error: 'fullName, phone, address, city bắt buộc' });
       return;
     }
-    const newAddress = await addressStorage.create(req.user!.userId, { label, fullName, phone, address, city });
+    const newAddress = await addressStorage.create(req.user!.userId, { label, fullName, phone, address, city, district, ward, zipCode });
     res.status(201).json({ address: newAddress });
   } catch (err) {
     throw err;

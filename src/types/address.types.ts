@@ -6,6 +6,9 @@ export interface Address {
   phone: string;
   address: string;
   city: string;
+  district?: string;
+  ward?: string;
+  zipCode?: string;
   isDefault: boolean;
   createdAt: Date;
 }
@@ -16,4 +19,7 @@ export interface CreateAddressDto {
   phone: string;
   address: string;
   city: string;
+  district?: string;
+  ward?: string;
+  zipCode?: string;
 }

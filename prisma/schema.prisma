@@ -79,6 +79,9 @@ model Address {
   phone     String
   address   String
   city      String
+  district  String?
+  ward      String?
+  zipCode   String?
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
 }
