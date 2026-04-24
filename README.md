@@ -1,266 +1,184 @@
 # Mobile Programming Backend
 
-TypeScript backend API for Mobile Programming authentication app with JWT, OTP verification, and rate limiting.
+TypeScript REST API + Socket.IO backend for the Bookly e-commerce mobile app. Handles auth, catalog, orders, payments (SePay), reviews, coupons, and admin operations backed by PostgreSQL via Prisma.
 
-## 🚀 Quick Start
+Repo: `https://github.com/levietkhanh189/Mobile-Programming-Backend`
+Production: `https://backend-production-9c18.up.railway.app/api`
 
-### Install Dependencies
+## Tech Stack
+
+- **Runtime**: Node.js ≥ 20.19
+- **Language**: TypeScript 5.9
+- **Framework**: Express 5
+- **ORM / DB**: Prisma 5 + PostgreSQL
+- **Realtime**: Socket.IO 4 (order status push)
+- **Auth**: JWT (`jsonwebtoken`) + bcryptjs
+- **Security**: helmet, cors, express-rate-limit
+- **Email / OTP**: nodemailer (SMTP) with console fallback in dev
+- **Payments**: SePay (VietQR) via `sepay-pg-node`
+- **Deploy**: Railway (nixpacks)
+
+## Quick Start
+
 ```bash
 npm install
+cp .env.example .env        # fill in DATABASE_URL, JWT_SECRET, SMTP_*, SEPAY_*
+npx prisma migrate deploy   # or: npx prisma migrate dev
+npx prisma db seed          # optional demo data
+npm run dev                 # http://localhost:3000
 ```
 
-### Environment Setup
-Copy `.env.example` to `.env` and configure:
+Production build:
+
 ```bash
-cp .env.example .env
+npm run build               # prisma generate + tsc
+npm start                   # node dist/server.js
 ```
 
-### Development
-```bash
-npm run dev
-```
-Server runs on `http://localhost:3000`
+## Scripts
 
-### Production Build
-```bash
-npm run build
-npm start
-```
+| Command | Purpose |
+|---|---|
+| `npm run dev` | ts-node-dev hot-reload server |
+| `npm run build` | `prisma generate` + TypeScript compile to `dist/` |
+| `npm start` | Run compiled server |
+| `npm run type-check` | `tsc --noEmit` |
 
-## 📋 API Endpoints
+## Architecture
 
-### Health Check
-- **GET** `/api/health` - Server health check
-
-### Authentication
-
-#### Register Simple (No OTP)
-- **POST** `/api/auth/register-simple`
-- Request body:
-```json
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "fullName": "John Doe",
-  "phone": "0123456789" // optional
-}
-```
-- Response: User object + JWT token
-
-#### Register with OTP
-1. **POST** `/api/auth/send-otp` - Send OTP to email
-```json
-{
-  "email": "user@example.com",
-  "purpose": "register"
-}
-```
-
-2. **POST** `/api/auth/verify-otp` - Verify OTP code
-```json
-{
-  "email": "user@example.com",
-  "otp": "123456"
-}
-```
-
-3. **POST** `/api/auth/register` - Complete registration
-```json
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "fullName": "John Doe",
-  "phone": "0123456789" // optional
-}
-```
-
-#### Login
-- **POST** `/api/auth/login`
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
-- Response: User object + JWT token
-
-#### Forgot Password
-1. **POST** `/api/auth/send-otp` - Send OTP to email
-```json
-{
-  "email": "user@example.com",
-  "purpose": "forgot-password"
-}
-```
-
-2. **POST** `/api/auth/verify-otp` - Verify OTP code
-```json
-{
-  "email": "user@example.com",
-  "otp": "123456"
-}
-```
-
-3. **POST** `/api/auth/reset-password` - Reset password
-```json
-{
-  "email": "user@example.com",
-  "newPassword": "newpassword123"
-}
-```
-
-### User Profile (Protected)
-- **GET** `/api/user/profile`
-- Headers: `Authorization: Bearer <JWT_TOKEN>`
-- Response: User object
-
-## 🔐 Security Features
-
-### JWT Authentication
-- Token expiry: 7 days (configurable)
-- Bearer token in Authorization header
-- Automatic token verification on protected routes
-
-### OTP System
-- 6-digit random codes
-- 5-minute expiry (configurable)
-- Purpose-based validation (register/forgot-password)
-- Console logging in development (email integration ready)
-
-### Rate Limiting
-- 3 OTP requests per 15 minutes per email
-- Prevents spam and abuse
-- Automatic cleanup after window expires
-
-### Password Security
-- bcrypt hashing with salt rounds: 10
-- Minimum 6 characters validation
-- Secure password storage
-
-## 🛠️ Tech Stack
-
-- **Runtime**: Node.js
-- **Language**: TypeScript
-- **Framework**: Express.js
-- **Authentication**: JWT (jsonwebtoken)
-- **Password Hashing**: bcryptjs
-- **CORS**: cors middleware
-- **Environment**: dotenv
-
-## 📂 Project Structure
+Layered: `routes → controllers → services → prisma`
 
 ```
 src/
-├── config/              # Environment and constants
-├── types/               # TypeScript type definitions
-├── storage/             # In-memory data storage
-├── services/            # Business logic layer
-├── middleware/          # Express middleware
-├── controllers/         # HTTP request handlers
-├── routes/              # API route definitions
-├── utils/               # Utility functions
-├── app.ts               # Express app setup
-└── server.ts            # Entry point
+├── config/          # env constants
+├── types/           # shared TS types
+├── storage/         # legacy in-memory stores (rate-limit, etc.)
+├── services/        # business logic (auth, otp, payment, email, ...)
+├── middleware/      # auth, error handling
+├── controllers/     # HTTP handlers
+├── routes/          # route definitions
+├── utils/           # helpers
+├── app.ts           # Express app + Socket.IO bootstrap
+└── server.ts        # entry point
+prisma/
+├── schema.prisma    # User, Product, Order, OrderItem, Address, Review, Wishlist, Coupon, ...
+├── migrations/
+└── seed.ts
 ```
 
-## 🧪 Testing Endpoints
+## API Overview
 
-### Using curl
+Base path: `/api`
 
-**Health check:**
+### Public
+- `GET  /health`
+- `GET  /products`, `/products/:id`, `/products/categories`, `/products/top-sellers`, `/products/discounts`, `/products/:id/related`, `/products/:id/reviews`
+- `GET  /reviews/:productId`
+
+### Auth
+- `POST /auth/send-otp` (`purpose: register | forgot-password`)
+- `POST /auth/verify-otp`
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/reset-password`
+
+### User (JWT required)
+- `GET  /user/profile`, `PUT /user/profile`, `POST /user/change-password`
+- `POST /user/request-update-email` → `POST /user/verify-update-email`
+- `POST /user/request-update-phone` → `POST /user/verify-update-phone`
+- `GET  /user/me/stats`
+- Addresses: `GET|POST /user/me/addresses`, `PUT|DELETE /user/me/addresses/:id`, `PATCH /user/me/addresses/:id/default`
+- Wishlist: `GET /user/me/wishlist`, `POST /user/me/wishlist`, `DELETE /user/me/wishlist/:productId`
+
+### Orders (JWT required)
+- `POST /orders/checkout`
+- `GET  /orders/history`
+- `GET  /orders/:id`
+- `DELETE /orders/:id` (cancel)
+
+### Reviews (JWT required)
+- `POST /reviews`
+
+### Payments — SePay
+- `POST /payments/sepay/create` (JWT)
+- `POST /payments/sepay/webhook` (server-to-server)
+- `GET  /payments/sepay/return`
+- `GET  /payments/sepay/status/:orderId` (JWT)
+
+### Admin (JWT + ADMIN/MANAGER role)
+- Auth: `POST /admin/auth/login`, `POST /admin/auth/seed`
+- Products: full CRUD on `/admin/products`
+- Orders: `GET /admin/orders`, `GET /admin/orders/:id`, `PUT /admin/orders/:id/status`
+- Users: `GET /admin/users`, `GET /admin/users/:id`, `PUT /admin/users/:id/role`
+- Coupons: full CRUD on `/admin/coupons` + `PATCH /admin/coupons/:id/toggle`
+- Revenue: `GET /admin/revenue/summary`, `/admin/revenue/daily`, `/admin/revenue/top-products`
+
+Protected routes require header: `Authorization: Bearer <JWT>`.
+
+## Realtime (Socket.IO)
+
+Admin changes to order status emit events to the customer's socket room, letting the mobile app update orders live without polling.
+
+## Database
+
+PostgreSQL managed through Prisma. Core models: `User` (roles: CUSTOMER / MANAGER / ADMIN), `Product`, `Order`, `OrderItem`, `Address`, `Review`, `Wishlist`, `Coupon`. See `prisma/schema.prisma`.
+
+Run migrations:
+
 ```bash
-curl http://localhost:3000/api/health
+npx prisma migrate dev        # local dev
+npx prisma migrate deploy     # prod / CI
+npx prisma studio             # GUI
 ```
 
-**Register simple:**
-```bash
-curl -X POST http://localhost:3000/api/auth/register-simple \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"test123","fullName":"Test User"}'
-```
-
-**Login:**
-```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"test123"}'
-```
-
-**Profile (with token):**
-```bash
-curl -X GET http://localhost:3000/api/user/profile \
-  -H "Authorization: Bearer <YOUR_JWT_TOKEN>"
-```
-
-**OTP flow:**
-```bash
-# 1. Send OTP
-curl -X POST http://localhost:3000/api/auth/send-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email":"otp@example.com","purpose":"register"}'
-
-# 2. Check console for OTP code, then verify
-curl -X POST http://localhost:3000/api/auth/verify-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email":"otp@example.com","otp":"123456"}'
-
-# 3. Register
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"otp@example.com","password":"test123","fullName":"OTP User"}'
-```
-
-## ⚙️ Environment Variables
+## Environment Variables
 
 ```env
-NODE_ENV=development              # development | production
-PORT=3000                         # Server port
-JWT_SECRET=your-secret-key        # JWT signing secret
-JWT_EXPIRY=7d                     # Token expiry (7d, 24h, etc.)
-OTP_EXPIRY_MINUTES=5              # OTP validity duration
-RATE_LIMIT_MAX_REQUESTS=3         # Max OTP requests per window
-RATE_LIMIT_WINDOW_MINUTES=15      # Rate limit time window
+NODE_ENV=development
+PORT=3000
+DATABASE_URL=postgresql://user:pass@host:5432/db
+JWT_SECRET=change-me
+JWT_EXPIRY=7d
+OTP_EXPIRY_MINUTES=5
+RATE_LIMIT_MAX_REQUESTS=3
+RATE_LIMIT_WINDOW_MINUTES=15
+
+# SMTP (nodemailer) — optional, falls back to console log
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+
+# SePay
+SEPAY_API_KEY=
+SEPAY_WEBHOOK_SECRET=
+SEPAY_RETURN_URL=
+
+# Admin bootstrap
+ADMIN_SEED_KEY=
 ```
 
-## ⚠️ Development Notes
+## Deployment — Railway
 
-- **OTP Email**: Currently logged to console. Integrate real email service for production (nodemailer, SendGrid, etc.)
-- **Storage**: In-memory storage. Replace with database (MongoDB, PostgreSQL) for production
-- **JWT Secret**: Use strong random secret in production, store in environment variables
-- **CORS**: Configure allowed origins for production
-- **Rate Limiting**: Consider Redis for distributed rate limiting in production
+`nixpacks.toml` provisions Node 24 for Prisma compatibility. Connect the GitHub repo, attach a Postgres plugin, set the env vars above, and deploy. Railway runs `npm run build` then `npm start`.
 
-## 🔄 Mobile App Integration
+Seed the first admin once after deploy:
 
-The mobile app connects via `services/api.ts`:
-```typescript
-const API_BASE_URL = 'http://localhost:3000/api';
+```bash
+curl -X POST https://<backend>.up.railway.app/api/admin/auth/seed \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@shop.com","password":"Admin@123","secretKey":"<ADMIN_SEED_KEY>"}'
 ```
 
-For physical devices, replace `localhost` with your computer's IP address:
-```typescript
-const API_BASE_URL = 'http://192.168.1.100:3000/api';
-```
+## Security Notes
 
-## 📦 NPM Scripts
+- bcryptjs with salt rounds 10
+- JWT 7-day expiry (configurable)
+- `express-rate-limit` + per-email OTP window (3 req / 15 min)
+- `helmet` default hardening; CORS currently open — restrict in production
+- OTP codes logged to server stdout when SMTP is not configured
 
-- `npm run dev` - Start development server with auto-reload
-- `npm run build` - Compile TypeScript to JavaScript
-- `npm start` - Run production build
-- `npm run type-check` - Check TypeScript types without compilation
-
-## 🎯 Code Quality
-
-- **Strict TypeScript**: No `any` types in business logic
-- **Modular Architecture**: All files under 200 lines
-- **Error Handling**: Consistent error responses
-- **Type Safety**: Full type coverage across codebase
-- **Clean Code**: Clear separation of concerns
-
-## 📝 License
+## License
 
 ISC
-
----
-
-**Built with TypeScript, Express, and JWT for secure authentication** 🔐
